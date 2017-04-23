@@ -51,7 +51,8 @@ module Gollum
         cp.import b.to_citeproc
         cp.bibliography.references.join("<br/>")
       end
-    rescue
+      
+    rescue LoadError
     end
 
 
