@@ -132,3 +132,22 @@ class Gollum::Filter::TOC < Gollum::Filter
     @anchor_names[name].nil? ? @anchor_names[name] = 0 : @anchor_names[name] += 1
   end
 end
+
+class SourceToc < Gollum::Filter::TOC
+  def initialize
+    @anchor_names      = {}
+    @current_ancestors = []
+  end
+
+  def sourcemap_for_headers(rendered_data)
+    headers = Nokogiri::HTML::DocumentFragment.parse(rendered_data).css('h1,h2,h3,h4,h5,h6[data-sourcepos]')
+    sourcemap = {}
+    headers.each_with_index do |header, i|
+      next if header.content.empty?
+      anchor_name = generate_anchor_name(header)
+      sourcemap["##{anchor_name}"] = header['data-sourcepos']
+      add_anchor_to_header header, anchor_name
+    end
+    sourcemap
+  end
+end

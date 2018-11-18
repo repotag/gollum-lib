@@ -15,6 +15,11 @@ module Gollum
     # Returns a Page
     attr_accessor :parent_page
 
+    def sourcemap
+      formatted_data if markup.toc == nil
+      markup.sourcemap
+    end
+
     # Checks if a filename has a valid, registered extension
     #
     # filename - String filename, like "Home.md".

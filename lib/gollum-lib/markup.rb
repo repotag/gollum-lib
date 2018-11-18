@@ -75,6 +75,7 @@ module Gollum
     attr_reader :include_levels
     attr_reader :to_xml_opts
     attr_reader :dir
+    attr_reader :sourcemap
 
     # Initialize a new Markup object.
     #
@@ -91,6 +92,7 @@ module Gollum
       @parent_page = page.parent_page
       @page        = page
       @dir         = ::File.dirname(page.path)
+      @sourcemap   = {}
       @metadata    = nil
       @to_xml_opts = { :save_with => Nokogiri::XML::Node::SaveOptions::DEFAULT_XHTML ^ 1, :indent => 0, :encoding => 'UTF-8' }
     end
@@ -128,6 +130,30 @@ module Gollum
         data = filter.process(data)
       end
 
+      result_headers = {}
+      header_tags = (1..6).map { |num| "h#{num}[data-sourcepos] > a" }
+      Nokogiri::HTML::DocumentFragment.parse(data).css(*header_tags).each do |node|
+        result_headers[node['href']] = node.parent['data-sourcepos']
+      end
+
+      puts "result_headers: #{result_headers.inspect}"
+
+      merge = {}
+      @sourcemap.reject! do |k,v|
+        if !result_headers[k]
+          check = k.match(/#\d+-(.+)/)
+          if check
+            check = "##{check[1]}"
+            merge[check] = v if @sourcemap[check]
+          end
+          true
+        else
+          false
+        end
+      end
+
+      @sourcemap.merge!(merge)
+
       data
     end
 
@@ -146,6 +172,9 @@ module Gollum
       @include_levels = include_levels
 
       data     = @data.dup
+
+      pre_data = Gollum::Filter::Render.new(self).extract(data.dup)
+      @sourcemap = Gollum::Filter::SourceToc.new.sourcemap_for_headers(pre_data)
 
       filter_chain = @wiki.filter_chain.reject {|filter| skip_filter?(filter)}
       filter_chain.map! do |filter_sym|

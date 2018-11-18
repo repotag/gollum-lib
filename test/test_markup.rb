@@ -32,6 +32,7 @@ context "Markup" do
     markup = Gollum::Markup.new(page)
     markup.render do |doc|
       assert_kind_of Nokogiri::HTML::DocumentFragment, doc
+      puts "YIELDED " + doc.inspect
       yielded = true
     end
     assert yielded
